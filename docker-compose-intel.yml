@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: todo_db
+    environment:
+      POSTGRES_DB: todo_local
+      POSTGRES_USER: todo_user
+      POSTGRES_PASSWORD: todo_pass
+      TZ: Asia/Tokyo
+    ports:
+      - "5433:5432"      # ホスト5433 → コンテナ5432（衝突回避したい人向け。使わなければ5432でもOK）
+    volumes:
+      - todo_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo_user -d todo_local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    image: eclipse-temurin:17-jdk
+    container_name: todo_app
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      # Spring Datasource（アプリ内からはサービス名dbでつなぐ）
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/todo_local
+      SPRING_DATASOURCE_USERNAME: todo_user
+      SPRING_DATASOURCE_PASSWORD: todo_pass
+
+      # 開発時のみ：SQLログやDDL自動更新が必要ならON
+      SPRING_JPA_SHOW_SQL: "true"
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "true"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
+      # タイムゾーン
+      TZ: Asia/Tokyo
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"      # ホスト→アプリ
+    command: [ "bash", "-lc", "./mvnw spring-boot:run" ]
+
+volumes:
+  todo_pg_data:
