@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: todo-app
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+
+
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+  # DBのURL/ユーザー/パスワードは環境変数から入るので書かない
+  # 開発用だけの軽い調整を置く（例：Hibernateのログをもう少し見たい等）
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
